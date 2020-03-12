@@ -34,6 +34,10 @@ type mediaInitResult struct {
 	ExpiresAfterSecs int    `json:"expires_after_secs"`
 }
 
+type mediaUploadParams struct {
+	MediaData string `url:"media_data"`
+}
+
 type mediaInitParams struct {
 	Command    string `url:"command"`
 	TotalBytes int    `url:"total_bytes"`
@@ -50,6 +54,12 @@ type mediaAppendParams struct {
 // MediaVideoInfo holds information about media identified as videos.
 type MediaVideoInfo struct {
 	VideoType string `json:"video_type"`
+}
+
+type MediaImageInfo struct {
+	ImageType string `json:"image_type"`
+	Width     int64  `json:"w"`
+	Height    int64  `json:"h"`
 }
 
 // MediaProcessingInfo holds information about pending media uploads.
@@ -79,6 +89,15 @@ type MediaUploadResult struct {
 	ExpiresAfterSecs int                  `json:"expires_after_secs"`
 	Video            *MediaVideoInfo      `json:"video"`
 	ProcessingInfo   *MediaProcessingInfo `json:"processing_info"`
+}
+
+type MediaUploadBase64Result struct {
+	MediaID          int64           `json:"media_id"`
+	MediaIDString    string          `json:"media_id_string"`
+	MediaKey         string          `json:"media_key"`
+	Size             int             `json:"size"`
+	ExpiresAfterSecs int             `json:"expires_after_secs"`
+	Image            *MediaImageInfo `json:"image"`
 }
 
 type mediaFinalizeParams struct {
@@ -153,6 +172,20 @@ func (m *MediaService) Upload(media []byte, mediaType string) (*MediaUploadResul
 	}
 
 	return finalizeRes, resp, nil
+}
+
+func (m *MediaService) UploadBase64(mediaData string) (*MediaUploadBase64Result, *http.Response, error) {
+	params := &mediaUploadParams{
+		MediaData: mediaData,
+	}
+	res := new(MediaUploadBase64Result)
+	apiError := new(APIError)
+	resp, err := m.sling.New().Post("upload.json").BodyForm(params).Receive(res, apiError)
+	if relevantError(err, *apiError) != nil {
+		return nil, resp, relevantError(err, *apiError)
+	}
+
+	return res, resp, nil
 }
 
 // MediaStatusResult holds information about the current status of a
